@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "upnptube"
+version = "0.1.0"
+description = "Cast from the YouTube app to DLNA/UPnP renderers"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.11"
+keywords = ["youtube", "dlna", "upnp", "cast", "audio", "music"]
+dependencies = [
+    "aiohttp>=3.10",
+    "yt-dlp[default]>=2025.11.12",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+upnptube = "upnptube.__main__:main"

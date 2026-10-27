@@ -1,0 +1,9 @@
+upnptube
+Copyright 2026 TigreGotico Lda
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+The YouTube Lounge protocol code in src/upnptube/lounge.py, app.py and player.py is a Python
+implementation of the behaviour of yt-cast-receiver by Patrick Kan
+(https://github.com/patrickkfkan/yt-cast-receiver), which its package.json declares under the
+MIT licence. Copyright (c) Patrick Kan.

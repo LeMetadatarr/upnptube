@@ -1,0 +1,14 @@
+services:
+  upnptube:
+    build: .
+    image: upnptube:latest
+    container_name: upnptube
+    # SSDP and DIAL need the host's own network: phones find the screens by multicast.
+    network_mode: host
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - upnptube-data:/data
+
+volumes:
+  upnptube-data:
