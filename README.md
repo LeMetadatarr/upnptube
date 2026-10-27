@@ -61,13 +61,31 @@ URL. Without a name, the request goes to the only renderer.
 | Request | Body or query | Result |
 | --- | --- | --- |
 | `GET /api/renderers` | | The renderers that are ready |
-| `GET /api/status` | `?renderer=` | State, title, video id, position, duration, volume, connected senders |
+| `GET /api/status` | `?renderer=` | State, title, artist, video id, position, duration, volume, whether next and previous can play, connected senders |
 | `GET /api/pairing-code` | `?renderer=` | A TV code to link the YouTube app, as on a smart TV |
 | `POST /api/play` | `{"url": …}` | Play a URL. A YouTube link goes into the queue, with autoplay after it |
 | `POST /api/pause`, `resume`, `stop`, `next`, `previous` | | Control the player |
 | `POST /api/volume` | `{"volume": 0–100}` | Set the volume |
+| `POST /api/seek` | `{"position": seconds}` | Play the track from a position |
 
 The phone and the API drive the same player, so the app shows what the API plays.
+
+## Desktop media controls and KDE Connect
+
+`upnptube-mpris` shows each renderer as an MPRIS player on the D-Bus session bus. The media
+controls of the desktop then show what a phone casts, and KDE Connect lets a paired phone
+control it. The bridge reads the control API, so it runs in the desktop session, apart from
+the service.
+
+Install it on the computer with the desktop session, and start it as a user service:
+
+    uv tool install --prerelease=allow '/path/to/upnptube[mpris]'
+    cp /path/to/upnptube/contrib/upnptube-mpris.service ~/.config/systemd/user/
+    systemctl --user enable --now upnptube-mpris
+
+For a service on another host, add `--server http://HOST:8100` to `ExecStart`. Each player
+has the bus name `org.mpris.MediaPlayer2.upnptube.<renderer name>`, for example
+`org.mpris.MediaPlayer2.upnptube.Living_Room_Stereo`.
 
 ## How it works
 
@@ -96,7 +114,9 @@ renderer control uses the AVTransport and RenderingControl services.
 
     uv venv
     uv pip install --prerelease=allow -e '.[test]'
-    .venv/bin/pytest tests/test_units.py
+    .venv/bin/pytest tests/test_units.py tests/test_mpris.py
+
+`tests/test_mpris.py` starts its own `dbus-daemon`, so it never touches the players of the desktop.
 
 `tests/e2e_live.py` runs a full cast on 127.0.0.1, so a firewall does not block it. A fake
 renderer answers the UPnP calls and reads the stream. A fake phone pairs with a TV code and

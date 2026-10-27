@@ -17,7 +17,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest"]
+# The bridge that shows renderers as MPRIS players in a desktop session.
+mpris = ["dbus-fast>=4"]
+test = ["pytest", "upnptube[mpris]"]
 
 [project.scripts]
 upnptube = "upnptube.__main__:main"
+upnptube-mpris = "upnptube.mpris:main"

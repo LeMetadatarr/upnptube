@@ -372,7 +372,20 @@ async def run_checks(video_id: str, state_dir: Path):
         check("API volume", status == 200 and fake.volume == 20, body)
         status, body = await api(session, "GET", "/api/status")
         check("API status reads the player", status == 200 and body["state"] == "PAUSED" and body["volume"] == 20
-              and body["video_id"] == video_id and body["duration"] > 0 and body["title"], body)
+              and body["video_id"] == video_id and body["duration"] > 0 and body["title"] and body["artist"], body)
+        # One video in the queue, with autoplay on: no previous, and next plays the autoplay video.
+        check("API status tells what next and previous can do", (body["has_previous"], body["has_next"]) == (False, True)
+              and renderer.player.queue.autoplay is not None, body)
+        duration, before = body["duration"], fake.uri
+        status, body = await api(session, "POST", "/api/seek", {"position": 30})
+        check("API seek loads the stream at the position and stays paused", status == 200 and fake.uri != before
+              and renderer.player.offset == 30 and fake.state == "PAUSED_PLAYBACK", (body, fake.state))
+        status, body = await api(session, "GET", "/api/status")
+        check("API status reports the new position", status == 200 and body["position"] == 30, body)
+        status, body = await api(session, "POST", "/api/seek", {"position": duration})
+        check("API refuses a seek to the end of the track", status == 400 and "position" in body["error"], body)
+        status, body = await api(session, "POST", "/api/seek", {"position": -1})
+        check("API refuses a negative seek", status == 400, body)
         status, body = await api(session, "POST", "/api/next")
         check("API next plays the autoplay video", status == 200 and renderer.player.queue.current.id != video_id
               and fake.state == "PLAYING", body)
