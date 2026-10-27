@@ -37,6 +37,7 @@ class ControlApi:
         app.router.add_post("/api/play", self._play)
         app.router.add_post("/api/{command:pause|resume|stop|next|previous}", self._command)
         app.router.add_post("/api/volume", self._volume)
+        app.router.add_post("/api/seek", self._seek)
 
     def _find(self, query: str | None) -> Renderer:
         ready = [r for r in self.renderers() if r.ready]
@@ -63,10 +64,15 @@ class ControlApi:
         player = renderer.player
         state = await player.get_state()
         current = state.queue.current
+        track = player.track
         return web.json_response({
-            "renderer": renderer.name, "state": state.status.name, "title": player.track.title if player.track else "",
-            "video_id": current.id if current else None, "position": state.position, "duration": state.duration,
+            "renderer": renderer.name, "state": state.status.name, "title": track.title if track else "",
+            "artist": track.artist if track else "", "video_id": current.id if current else None,
+            "position": state.position, "duration": state.duration,
             "volume": state.volume.level, "muted": state.volume.muted,
+            "has_previous": player.queue.has_previous,
+            # Next also plays the autoplay video after the last one in the queue.
+            "has_next": player.queue.has_next or state.queue.autoplay is not None,
             "senders": [sender.name for sender in renderer.app.senders],
         })
 
@@ -133,3 +139,20 @@ class ControlApi:
             if not await renderer.player.set_volume(Volume(level)):
                 raise _error(502, f"{renderer.name}: set volume failed")
         return web.json_response({"renderer": renderer.name, "volume": level})
+
+    async def _seek(self, request: web.Request) -> web.Response:
+        body = await self._body(request)
+        renderer = self._find(body.get("renderer"))
+        player = renderer.player
+        try:
+            position = int(body["position"])
+        except (KeyError, TypeError, ValueError):
+            position = -1
+        duration = await player.do_get_duration()
+        if position < 0 or duration and position >= duration:
+            raise _error(400, f"Give a position from 0 to {max(duration - 1, 0)} seconds" if duration
+                         else "Give a position of 0 seconds or more")
+        async with player.lock:
+            if not await player.seek(position):
+                raise _error(400, f"{renderer.name}: nothing to seek")
+        return web.json_response({"renderer": renderer.name, "position": position})

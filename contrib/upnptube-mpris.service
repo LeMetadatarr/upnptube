@@ -1,0 +1,12 @@
+[Unit]
+Description=Show upnptube renderers as MPRIS players
+# The players live on the session bus of the user manager, as KDE Connect does.
+After=dbus.socket
+
+[Service]
+ExecStart=%h/.local/bin/upnptube-mpris
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
